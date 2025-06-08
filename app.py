@@ -188,10 +188,18 @@ def display_dashboard(chart_generator):
     """Display the main dashboard with charts"""
     st.header("📊 Interactive Dashboard")
     
-    # Ensure filtered data is initialized
+    # Ensure filtered data is initialized and apply any existing filters
     if 'filtered_data' not in st.session_state or st.session_state.filtered_data is None:
         if st.session_state.data is not None:
             st.session_state.filtered_data = st.session_state.data.copy()
+    
+    # Check if there are active filters and reapply them to ensure consistency
+    if hasattr(st.session_state, 'current_filters') and st.session_state.current_filters:
+        from utils.data_processor import DataProcessor
+        data_processor = DataProcessor()
+        st.session_state.filtered_data = data_processor.apply_filters(
+            st.session_state.data, st.session_state.current_filters
+        )
     
     if st.session_state.filtered_data is not None and not st.session_state.filtered_data.empty:
         # Show current data status with filter update counter for reactivity
@@ -286,10 +294,12 @@ def display_data_explorer(data_processor):
                     filters[col] = range_val
                     filter_changed = True
         
+        # Store current filter state for persistence across tabs
+        st.session_state.current_filters = filters
+        
         # Apply filters automatically when they change
         if filters:
             new_filtered_data = data_processor.apply_filters(st.session_state.data, filters)
-            # Always update filtered data and increment counter when filters are active
             st.session_state.filtered_data = new_filtered_data
             if 'filter_update_counter' not in st.session_state:
                 st.session_state.filter_update_counter = 0
