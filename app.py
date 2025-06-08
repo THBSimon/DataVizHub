@@ -333,15 +333,24 @@ def display_data_explorer(data_processor):
         
         # Reset filters
         if st.button("🔄 Reset Filters"):
-            # Clear all filter widget states
-            for col in columns:
-                if st.session_state.data[col].dtype == 'object':
-                    if f"filter_{col}" in st.session_state:
-                        del st.session_state[f"filter_{col}"]
-                else:
-                    if f"range_{col}" in st.session_state:
-                        del st.session_state[f"range_{col}"]
+            # Clear all filter widget states and reset current filters
+            keys_to_delete = []
+            for key in st.session_state.keys():
+                if key.startswith('filter_') or key.startswith('range_'):
+                    keys_to_delete.append(key)
+            
+            for key in keys_to_delete:
+                del st.session_state[key]
+            
+            # Clear current filter state
+            st.session_state.current_filters = {}
             st.session_state.filtered_data = st.session_state.data.copy()
+            
+            # Increment counter to force chart refresh
+            if 'filter_update_counter' not in st.session_state:
+                st.session_state.filter_update_counter = 0
+            st.session_state.filter_update_counter += 1
+            
             st.rerun()
     
     with col1:
