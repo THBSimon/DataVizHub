@@ -289,30 +289,25 @@ def display_data_explorer(data_processor):
         # Initialize reset counter and widget recreation timestamp
         if 'filter_reset_counter' not in st.session_state:
             st.session_state.filter_reset_counter = 0
+        if 'filter_reset_timestamp' not in st.session_state:
+            import time
+            st.session_state.filter_reset_timestamp = int(time.time())
         
-        # Use timestamp-based approach for guaranteed unique keys
-        import time
-        reset_timestamp = st.session_state.get('filter_reset_timestamp', int(time.time()))
+        # Use current timestamp and counter for widget keys
+        reset_timestamp = st.session_state.filter_reset_timestamp
         reset_counter = st.session_state.filter_reset_counter
         
         for col in columns:
             if st.session_state.data[col].dtype == 'object':
                 unique_values = st.session_state.data[col].unique()
-                # Create completely unique key combining counter and timestamp
-                unique_key = f"filter_{col}_{reset_counter}_{reset_timestamp}"
-                
-                # Check if this is a fresh reset (no existing state)
-                if unique_key not in st.session_state:
-                    default_selection = unique_values
-                else:
-                    # Use existing state if available
-                    default_selection = st.session_state.get(unique_key, unique_values)
+                # Create widget key that changes only on reset
+                widget_key = f"filter_{col}_{reset_counter}_{reset_timestamp}"
                 
                 selected = st.multiselect(
                     f"Filter {col}",
                     options=unique_values,
-                    default=list(unique_values),  # Always reset to all selected
-                    key=unique_key
+                    default=list(unique_values),  # Default to all selected
+                    key=widget_key
                 )
                 if len(selected) < len(unique_values):
                     filters[col] = selected
@@ -321,15 +316,15 @@ def display_data_explorer(data_processor):
                 min_val = float(st.session_state.data[col].min())
                 max_val = float(st.session_state.data[col].max())
                 
-                # Create completely unique key combining counter and timestamp
-                unique_key = f"range_{col}_{reset_counter}_{reset_timestamp}"
+                # Create widget key that changes only on reset
+                widget_key = f"range_{col}_{reset_counter}_{reset_timestamp}"
                 
                 range_val = st.slider(
                     f"Range for {col}",
                     min_value=min_val,
                     max_value=max_val,
-                    value=(min_val, max_val),  # Always reset to full range
-                    key=unique_key
+                    value=(min_val, max_val),  # Default to full range
+                    key=widget_key
                 )
                 if range_val[0] > min_val or range_val[1] < max_val:
                     filters[col] = range_val
