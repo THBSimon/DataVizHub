@@ -20,10 +20,6 @@ author = "agent"
 task = "workflow.run"
 args = "Streamlit Dashboard"
 
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "streamlit_dashboard"
-
 [[workflows.workflow]]
 name = "Streamlit Dashboard"
 author = "agent"
@@ -32,14 +28,6 @@ author = "agent"
 task = "shell.exec"
 args = "streamlit run app.py --server.port 5000"
 waitForPort = 5000
-
-[[workflows.workflow]]
-name = "streamlit_dashboard"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "uv add plotly openpyxl && streamlit run app.py --server.port 5000"
 
 [[ports]]
 localPort = 5000
