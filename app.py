@@ -289,34 +289,39 @@ def display_data_explorer(data_processor):
         # Get reset counter for widget keys to force recreation on reset
         reset_counter = st.session_state.get('filter_reset_counter', 0)
         
-        for col in columns:
-            if st.session_state.data[col].dtype == 'object':
-                unique_values = st.session_state.data[col].unique()
-                selected = st.multiselect(
-                    f"Filter {col}",
-                    options=unique_values,
-                    default=unique_values,
-                    key=f"filter_{col}_{reset_counter}"
-                )
-                if len(selected) < len(unique_values):
-                    filters[col] = selected
-                    filter_changed = True
-            else:
-                min_val = float(st.session_state.data[col].min())
-                max_val = float(st.session_state.data[col].max())
-                
-                # Force sliders to reset to full range by always using full range as default
-                # when reset counter changes (new widget creation)
-                range_val = st.slider(
-                    f"Range for {col}",
-                    min_value=min_val,
-                    max_value=max_val,
-                    value=(min_val, max_val),
-                    key=f"range_{col}_{reset_counter}"
-                )
-                if range_val[0] > min_val or range_val[1] < max_val:
-                    filters[col] = range_val
-                    filter_changed = True
+        # Create a container that gets completely recreated on reset
+        filter_container = st.container()
+        with filter_container:
+            for col in columns:
+                if st.session_state.data[col].dtype == 'object':
+                    unique_values = st.session_state.data[col].unique()
+                    # Force complete widget recreation by including reset counter in key
+                    widget_key = f"filter_{col}_reset_{reset_counter}"
+                    selected = st.multiselect(
+                        f"Filter {col}",
+                        options=unique_values,
+                        default=unique_values,
+                        key=widget_key
+                    )
+                    if len(selected) < len(unique_values):
+                        filters[col] = selected
+                        filter_changed = True
+                else:
+                    min_val = float(st.session_state.data[col].min())
+                    max_val = float(st.session_state.data[col].max())
+                    
+                    # Force complete widget recreation by including reset counter in key
+                    widget_key = f"range_{col}_reset_{reset_counter}"
+                    range_val = st.slider(
+                        f"Range for {col}",
+                        min_value=min_val,
+                        max_value=max_val,
+                        value=(min_val, max_val),
+                        key=widget_key
+                    )
+                    if range_val[0] > min_val or range_val[1] < max_val:
+                        filters[col] = range_val
+                        filter_changed = True
         
         # Store current filter state for persistence across tabs
         st.session_state.current_filters = filters
@@ -339,21 +344,25 @@ def display_data_explorer(data_processor):
         
         # Reset filters
         if st.button("🔄 Reset Filters"):
-            # Clear all filter-related session state
+            # Nuclear option: clear ALL widget states that could interfere
             keys_to_delete = []
             for key in list(st.session_state.keys()):
-                if isinstance(key, str) and (key.startswith('filter_') or key.startswith('range_')):
+                if isinstance(key, str) and (
+                    key.startswith('filter_') or 
+                    key.startswith('range_') or
+                    'reset_' in key
+                ):
                     keys_to_delete.append(key)
             
             for key in keys_to_delete:
                 if key in st.session_state:
                     del st.session_state[key]
             
-            # Clear current filter state and reset data
+            # Clear ALL filter state
             st.session_state.current_filters = {}
             st.session_state.filtered_data = st.session_state.data.copy()
             
-            # Increment reset counter to force widget recreation
+            # Force complete widget recreation by incrementing counter
             if 'filter_reset_counter' not in st.session_state:
                 st.session_state.filter_reset_counter = 0
             st.session_state.filter_reset_counter += 1
@@ -363,8 +372,6 @@ def display_data_explorer(data_processor):
                 st.session_state.filter_update_counter = 0
             st.session_state.filter_update_counter += 1
             
-            # Add success message
-            st.success("✅ All filters have been reset")
             st.rerun()
     
     with col1:
