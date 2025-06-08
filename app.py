@@ -74,7 +74,7 @@ def main():
     
     if st.session_state.data is not None:
         # Main content area
-        tab1, tab2, tab3, tab4 = st.tabs(["📊 Dashboard", "🔍 Data Explorer", "⚙️ Chart Settings", "📤 Export"])
+        tab1, tab2, tab3 = st.tabs(["📊 Dashboard", "🔍 Data Explorer", "📤 Export"])
         
         with tab1:
             display_dashboard(chart_generator)
@@ -83,9 +83,6 @@ def main():
             display_data_explorer(data_processor)
         
         with tab3:
-            display_chart_settings()
-        
-        with tab4:
             display_export_options(export_helper)
     
     else:
@@ -200,20 +197,16 @@ def display_dashboard(chart_generator):
                 st.rerun()
         
         # Drag and drop interface for chart ordering
-        try:
-            sorted_items = sort_items(
-                st.session_state.dashboard_layout,
-                direction="horizontal" if st.session_state.columns_layout > 2 else "vertical",
-                key="dashboard_sort"
-            )
-            
-            # Update layout if changed
-            if sorted_items != st.session_state.dashboard_layout:
-                st.session_state.dashboard_layout = sorted_items
-                st.rerun()
-        except:
-            # Fallback if sorting fails
-            st.session_state.dashboard_layout = ['Chart 1', 'Chart 2', 'Chart 3', 'Chart 4']
+        st.markdown("---")
+        sorted_items = sort_items(
+            st.session_state.dashboard_layout,
+            direction="horizontal",
+            key="dashboard_sort"
+        )
+        
+        # Update layout if changed
+        if sorted_items and sorted_items != st.session_state.dashboard_layout:
+            st.session_state.dashboard_layout = sorted_items
         
         # Display charts in the configured layout
         cols_per_row = st.session_state.columns_layout
@@ -280,12 +273,19 @@ def display_data_explorer(data_processor):
                 if range_val != (min_val, max_val):
                     filters[col] = range_val
         
-        # Apply filters
-        if st.button("🔄 Apply Filters", type="primary"):
+        # Apply filters automatically
+        if filters:
             st.session_state.filtered_data = data_processor.apply_filters(
                 st.session_state.data, filters
             )
-            st.rerun()
+        else:
+            st.session_state.filtered_data = st.session_state.data.copy()
+        
+        # Show filter summary
+        if filters:
+            st.success(f"✅ Applied {len(filters)} filter(s)")
+        else:
+            st.info("ℹ️ No filters applied - showing all data")
         
         # Reset filters
         if st.button("🔄 Reset Filters"):
@@ -308,112 +308,6 @@ def display_data_explorer(data_processor):
                 )
                 st.rerun()
 
-def display_chart_settings():
-    """Display chart configuration interface"""
-    st.header("⚙️ Chart Settings")
-    
-    if st.session_state.filtered_data is not None:
-        columns = st.session_state.filtered_data.columns.tolist()
-        numeric_columns = st.session_state.filtered_data.select_dtypes(include=[np.number]).columns.tolist()
-        
-        # Chart configuration tabs
-        chart_tabs = st.tabs(["Chart 1 (Bar)", "Chart 2 (Line)", "Chart 3 (Scatter)", "Chart 4 (Pie)"])
-        
-        # Chart 1 - Bar Chart
-        with chart_tabs[0]:
-            st.subheader("📊 Bar Chart Configuration")
-            col1, col2, col3 = st.columns(3)
-            
-            with col1:
-                st.session_state.chart_configs['Chart 1']['x'] = st.selectbox(
-                    "X-axis", columns, key="bar_x",
-                    index=columns.index(st.session_state.chart_configs['Chart 1']['x']) 
-                    if st.session_state.chart_configs['Chart 1']['x'] in columns else 0
-                )
-            
-            with col2:
-                st.session_state.chart_configs['Chart 1']['y'] = st.selectbox(
-                    "Y-axis", numeric_columns, key="bar_y",
-                    index=numeric_columns.index(st.session_state.chart_configs['Chart 1']['y']) 
-                    if st.session_state.chart_configs['Chart 1']['y'] in numeric_columns else 0
-                ) if numeric_columns else None
-            
-            with col3:
-                color_options = ['None'] + columns
-                color_selection = st.selectbox("Color by", color_options, key="bar_color")
-                st.session_state.chart_configs['Chart 1']['color'] = color_selection if color_selection != 'None' else None
-        
-        # Chart 2 - Line Chart
-        with chart_tabs[1]:
-            st.subheader("📈 Line Chart Configuration")
-            col1, col2, col3 = st.columns(3)
-            
-            with col1:
-                st.session_state.chart_configs['Chart 2']['x'] = st.selectbox(
-                    "X-axis", columns, key="line_x",
-                    index=columns.index(st.session_state.chart_configs['Chart 2']['x']) 
-                    if st.session_state.chart_configs['Chart 2']['x'] in columns else 0
-                )
-            
-            with col2:
-                st.session_state.chart_configs['Chart 2']['y'] = st.selectbox(
-                    "Y-axis", numeric_columns, key="line_y",
-                    index=numeric_columns.index(st.session_state.chart_configs['Chart 2']['y']) 
-                    if st.session_state.chart_configs['Chart 2']['y'] in numeric_columns else 0
-                ) if numeric_columns else None
-            
-            with col3:
-                color_options = ['None'] + columns
-                color_selection = st.selectbox("Color by", color_options, key="line_color")
-                st.session_state.chart_configs['Chart 2']['color'] = color_selection if color_selection != 'None' else None
-        
-        # Chart 3 - Scatter Plot
-        with chart_tabs[2]:
-            st.subheader("🔵 Scatter Plot Configuration")
-            col1, col2, col3, col4 = st.columns(4)
-            
-            with col1:
-                st.session_state.chart_configs['Chart 3']['x'] = st.selectbox(
-                    "X-axis", numeric_columns, key="scatter_x",
-                    index=numeric_columns.index(st.session_state.chart_configs['Chart 3']['x']) 
-                    if st.session_state.chart_configs['Chart 3']['x'] in numeric_columns else 0
-                ) if numeric_columns else None
-            
-            with col2:
-                st.session_state.chart_configs['Chart 3']['y'] = st.selectbox(
-                    "Y-axis", numeric_columns, key="scatter_y",
-                    index=numeric_columns.index(st.session_state.chart_configs['Chart 3']['y']) 
-                    if st.session_state.chart_configs['Chart 3']['y'] in numeric_columns else 0
-                ) if numeric_columns else None
-            
-            with col3:
-                color_options = ['None'] + columns
-                color_selection = st.selectbox("Color by", color_options, key="scatter_color")
-                st.session_state.chart_configs['Chart 3']['color'] = color_selection if color_selection != 'None' else None
-            
-            with col4:
-                size_options = ['None'] + numeric_columns
-                size_selection = st.selectbox("Size by", size_options, key="scatter_size")
-                st.session_state.chart_configs['Chart 3']['size'] = size_selection if size_selection != 'None' else None
-        
-        # Chart 4 - Pie Chart
-        with chart_tabs[3]:
-            st.subheader("🥧 Pie Chart Configuration")
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                st.session_state.chart_configs['Chart 4']['values'] = st.selectbox(
-                    "Values", numeric_columns, key="pie_values",
-                    index=numeric_columns.index(st.session_state.chart_configs['Chart 4']['values']) 
-                    if st.session_state.chart_configs['Chart 4']['values'] in numeric_columns else 0
-                ) if numeric_columns else None
-            
-            with col2:
-                st.session_state.chart_configs['Chart 4']['names'] = st.selectbox(
-                    "Labels", columns, key="pie_names",
-                    index=columns.index(st.session_state.chart_configs['Chart 4']['names']) 
-                    if st.session_state.chart_configs['Chart 4']['names'] in columns else 0
-                )
 
 def display_export_options(export_helper):
     """Display export functionality"""
