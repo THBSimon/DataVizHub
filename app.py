@@ -194,13 +194,15 @@ def display_dashboard(chart_generator):
             st.session_state.filtered_data = st.session_state.data.copy()
     
     if st.session_state.filtered_data is not None and not st.session_state.filtered_data.empty:
-        # Show current data status
+        # Show current data status with filter update counter for reactivity
         total_rows = len(st.session_state.data) if st.session_state.data is not None else 0
         filtered_rows = len(st.session_state.filtered_data)
+        filter_counter = st.session_state.get('filter_update_counter', 0)
+        
         if filtered_rows < total_rows:
-            st.info(f"📊 Showing {filtered_rows} of {total_rows} rows (filtered)")
+            st.info(f"📊 Showing {filtered_rows} of {total_rows} rows (filtered) [Update: {filter_counter}]")
         else:
-            st.info(f"📊 Showing all {total_rows} rows")
+            st.info(f"📊 Showing all {total_rows} rows [Update: {filter_counter}]")
         
         # Dashboard layout controls
         col1, col2, col3 = st.columns([2, 1, 1])
