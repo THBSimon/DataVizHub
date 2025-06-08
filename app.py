@@ -62,9 +62,6 @@ def main():
                     st.session_state.data = data_processor.load_data(uploaded_file)
                     st.session_state.filtered_data = st.session_state.data.copy()
                     
-                    # Force a rerun to ensure all components use the new data
-                    st.rerun()
-                    
                 st.success(f"✅ Data loaded successfully! ({len(st.session_state.data)} rows)")
                 
                 # Display basic data info
