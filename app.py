@@ -336,29 +336,32 @@ def display_data_explorer(data_processor):
         
         # Reset filters
         if st.button("🔄 Reset Filters"):
-            # Clear all filter widget states and reset current filters
+            # Clear all filter-related session state
             keys_to_delete = []
-            for key in st.session_state.keys():
+            for key in list(st.session_state.keys()):
                 if isinstance(key, str) and (key.startswith('filter_') or key.startswith('range_')):
                     keys_to_delete.append(key)
             
             for key in keys_to_delete:
-                del st.session_state[key]
+                if key in st.session_state:
+                    del st.session_state[key]
             
-            # Clear current filter state
+            # Clear current filter state and reset data
             st.session_state.current_filters = {}
             st.session_state.filtered_data = st.session_state.data.copy()
             
-            # Increment reset counter to force widget recreation with new keys
+            # Increment reset counter to force widget recreation
             if 'filter_reset_counter' not in st.session_state:
                 st.session_state.filter_reset_counter = 0
             st.session_state.filter_reset_counter += 1
             
-            # Increment counter to force chart refresh
+            # Force chart refresh
             if 'filter_update_counter' not in st.session_state:
                 st.session_state.filter_update_counter = 0
             st.session_state.filter_update_counter += 1
             
+            # Add success message
+            st.success("✅ All filters have been reset")
             st.rerun()
     
     with col1:
