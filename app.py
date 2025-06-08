@@ -225,21 +225,11 @@ def display_data_explorer(data_processor):
     """Display data exploration and filtering interface"""
     st.header("🔍 Data Explorer")
     
-    col1, col2 = st.columns([2, 1])
+    # Initialize filtered data if not exists
+    if 'filtered_data' not in st.session_state or st.session_state.filtered_data is None:
+        st.session_state.filtered_data = st.session_state.data.copy()
     
-    with col1:
-        st.subheader("Raw Data")
-        if st.session_state.data is not None:
-            # Display filtered data
-            st.dataframe(st.session_state.filtered_data, use_container_width=True, height=400)
-            
-            # Data statistics
-            if not st.session_state.filtered_data.empty:
-                st.subheader("📈 Data Statistics")
-                numeric_cols = st.session_state.filtered_data.select_dtypes(include=[np.number]).columns
-                if len(numeric_cols) > 0:
-                    stats_df = st.session_state.filtered_data[numeric_cols].describe()
-                    st.dataframe(stats_df, use_container_width=True)
+    col1, col2 = st.columns([2, 1])
     
     with col2:
         st.subheader("🔍 Filters & Aggregation")
@@ -249,6 +239,8 @@ def display_data_explorer(data_processor):
         columns = st.session_state.data.columns.tolist()
         
         filters = {}
+        filter_changed = False
+        
         for col in columns:
             if st.session_state.data[col].dtype == 'object':
                 unique_values = st.session_state.data[col].unique()
@@ -260,6 +252,7 @@ def display_data_explorer(data_processor):
                 )
                 if len(selected) < len(unique_values):
                     filters[col] = selected
+                    filter_changed = True
             else:
                 min_val = float(st.session_state.data[col].min())
                 max_val = float(st.session_state.data[col].max())
@@ -272,12 +265,12 @@ def display_data_explorer(data_processor):
                 )
                 if range_val[0] > min_val or range_val[1] < max_val:
                     filters[col] = range_val
+                    filter_changed = True
         
-        # Apply filters automatically
+        # Apply filters automatically when they change
         if filters:
-            st.session_state.filtered_data = data_processor.apply_filters(
-                st.session_state.data, filters
-            )
+            new_filtered_data = data_processor.apply_filters(st.session_state.data, filters)
+            st.session_state.filtered_data = new_filtered_data
             st.success(f"✅ Applied {len(filters)} filter(s) - {len(st.session_state.filtered_data)} rows shown")
         else:
             st.session_state.filtered_data = st.session_state.data.copy()
@@ -285,8 +278,30 @@ def display_data_explorer(data_processor):
         
         # Reset filters
         if st.button("🔄 Reset Filters"):
+            # Clear all filter widget states
+            for col in columns:
+                if st.session_state.data[col].dtype == 'object':
+                    if f"filter_{col}" in st.session_state:
+                        del st.session_state[f"filter_{col}"]
+                else:
+                    if f"range_{col}" in st.session_state:
+                        del st.session_state[f"range_{col}"]
             st.session_state.filtered_data = st.session_state.data.copy()
             st.rerun()
+    
+    with col1:
+        st.subheader("Filtered Data")
+        if st.session_state.data is not None:
+            # Display filtered data
+            st.dataframe(st.session_state.filtered_data, use_container_width=True, height=400)
+            
+            # Data statistics
+            if not st.session_state.filtered_data.empty:
+                st.subheader("📈 Data Statistics")
+                numeric_cols = st.session_state.filtered_data.select_dtypes(include=[np.number]).columns
+                if len(numeric_cols) > 0:
+                    stats_df = st.session_state.filtered_data[numeric_cols].describe()
+                    st.dataframe(stats_df, use_container_width=True)
         
         # Aggregation options
         st.write("**Data Aggregation:**")
