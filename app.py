@@ -200,17 +200,35 @@ def display_dashboard(chart_generator):
         st.session_state.filtered_data = data_processor.apply_filters(
             st.session_state.data, st.session_state.current_filters
         )
+        # Increment counter to force chart refresh when tab is opened with active filters
+        if 'filter_update_counter' not in st.session_state:
+            st.session_state.filter_update_counter = 0
+        st.session_state.filter_update_counter += 1
     
     if st.session_state.filtered_data is not None and not st.session_state.filtered_data.empty:
-        # Show current data status with filter update counter for reactivity
+        # Show current data status and add refresh button
         total_rows = len(st.session_state.data) if st.session_state.data is not None else 0
         filtered_rows = len(st.session_state.filtered_data)
-        filter_counter = st.session_state.get('filter_update_counter', 0)
         
-        if filtered_rows < total_rows:
-            st.info(f"📊 Showing {filtered_rows} of {total_rows} rows (filtered) [Update: {filter_counter}]")
-        else:
-            st.info(f"📊 Showing all {total_rows} rows [Update: {filter_counter}]")
+        col_status, col_refresh = st.columns([4, 1])
+        with col_status:
+            if filtered_rows < total_rows:
+                st.info(f"📊 Showing {filtered_rows} of {total_rows} rows (filtered)")
+            else:
+                st.info(f"📊 Showing all {total_rows} rows")
+        
+        with col_refresh:
+            if st.button("🔄 Refresh Charts", help="Update charts with current filter settings"):
+                if hasattr(st.session_state, 'current_filters') and st.session_state.current_filters:
+                    from utils.data_processor import DataProcessor
+                    data_processor = DataProcessor()
+                    st.session_state.filtered_data = data_processor.apply_filters(
+                        st.session_state.data, st.session_state.current_filters
+                    )
+                if 'filter_update_counter' not in st.session_state:
+                    st.session_state.filter_update_counter = 0
+                st.session_state.filter_update_counter += 1
+                st.rerun()
         
         # Dashboard layout controls
         col1, col2, col3 = st.columns([2, 1, 1])
