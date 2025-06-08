@@ -25,10 +25,10 @@ if 'filtered_data' not in st.session_state:
     st.session_state.filtered_data = None
 if 'chart_configs' not in st.session_state:
     st.session_state.chart_configs = {
-        'Chart 1': {'type': 'bar', 'x': None, 'y': None, 'color': None, 'title': 'Bar Chart'},
-        'Chart 2': {'type': 'line', 'x': None, 'y': None, 'color': None, 'title': 'Line Chart'},
-        'Chart 3': {'type': 'scatter', 'x': None, 'y': None, 'color': None, 'size': None, 'title': 'Scatter Plot'},
-        'Chart 4': {'type': 'pie', 'values': None, 'names': None, 'title': 'Pie Chart'}
+        'Chart 1': {'type': 'bar', 'x': None, 'y': None, 'color': None, 'size': None, 'values': None, 'names': None, 'title': 'Bar Chart'},
+        'Chart 2': {'type': 'line', 'x': None, 'y': None, 'color': None, 'size': None, 'values': None, 'names': None, 'title': 'Line Chart'},
+        'Chart 3': {'type': 'scatter', 'x': None, 'y': None, 'color': None, 'size': None, 'values': None, 'names': None, 'title': 'Scatter Plot'},
+        'Chart 4': {'type': 'pie', 'x': None, 'y': None, 'color': None, 'size': None, 'values': None, 'names': None, 'title': 'Pie Chart'}
     }
 if 'dashboard_layout' not in st.session_state:
     st.session_state.dashboard_layout = ['Chart 1', 'Chart 2', 'Chart 3', 'Chart 4']
@@ -146,7 +146,8 @@ def create_chart_widget(chart_name, chart_generator):
                     # Size option for scatter plots
                     if config['type'] == 'scatter':
                         size_options = ['None'] + numeric_columns
-                        size_idx = size_options.index(config['size']) if config['size'] in size_options else 0
+                        current_size = config.get('size', None)
+                        size_idx = size_options.index(current_size) if current_size in size_options else 0
                         size_selection = st.selectbox("Size by", size_options, index=size_idx, key=f"size_{chart_name}")
                         config['size'] = size_selection if size_selection != 'None' else None
                 
@@ -154,10 +155,12 @@ def create_chart_widget(chart_name, chart_generator):
                     col_vals, col_names = st.columns(2)
                     with col_vals:
                         if numeric_columns:
-                            vals_idx = numeric_columns.index(config['values']) if config['values'] in numeric_columns else 0
+                            current_values = config.get('values', None)
+                            vals_idx = numeric_columns.index(current_values) if current_values in numeric_columns else 0
                             config['values'] = st.selectbox("Values", numeric_columns, index=vals_idx, key=f"values_{chart_name}")
                     with col_names:
-                        names_idx = columns.index(config['names']) if config['names'] in columns else 0
+                        current_names = config.get('names', None)
+                        names_idx = columns.index(current_names) if current_names in columns else 0
                         config['names'] = st.selectbox("Labels", columns, index=names_idx, key=f"names_{chart_name}")
                 
                 # Update the session state
@@ -322,23 +325,23 @@ def display_chart_settings():
             col1, col2, col3 = st.columns(3)
             
             with col1:
-                st.session_state.chart_configs['chart1']['x'] = st.selectbox(
+                st.session_state.chart_configs['Chart 1']['x'] = st.selectbox(
                     "X-axis", columns, key="bar_x",
-                    index=columns.index(st.session_state.chart_configs['chart1']['x']) 
-                    if st.session_state.chart_configs['chart1']['x'] in columns else 0
+                    index=columns.index(st.session_state.chart_configs['Chart 1']['x']) 
+                    if st.session_state.chart_configs['Chart 1']['x'] in columns else 0
                 )
             
             with col2:
-                st.session_state.chart_configs['chart1']['y'] = st.selectbox(
+                st.session_state.chart_configs['Chart 1']['y'] = st.selectbox(
                     "Y-axis", numeric_columns, key="bar_y",
-                    index=numeric_columns.index(st.session_state.chart_configs['chart1']['y']) 
-                    if st.session_state.chart_configs['chart1']['y'] in numeric_columns else 0
+                    index=numeric_columns.index(st.session_state.chart_configs['Chart 1']['y']) 
+                    if st.session_state.chart_configs['Chart 1']['y'] in numeric_columns else 0
                 ) if numeric_columns else None
             
             with col3:
                 color_options = ['None'] + columns
                 color_selection = st.selectbox("Color by", color_options, key="bar_color")
-                st.session_state.chart_configs['chart1']['color'] = color_selection if color_selection != 'None' else None
+                st.session_state.chart_configs['Chart 1']['color'] = color_selection if color_selection != 'None' else None
         
         # Chart 2 - Line Chart
         with chart_tabs[1]:
@@ -346,23 +349,23 @@ def display_chart_settings():
             col1, col2, col3 = st.columns(3)
             
             with col1:
-                st.session_state.chart_configs['chart2']['x'] = st.selectbox(
+                st.session_state.chart_configs['Chart 2']['x'] = st.selectbox(
                     "X-axis", columns, key="line_x",
-                    index=columns.index(st.session_state.chart_configs['chart2']['x']) 
-                    if st.session_state.chart_configs['chart2']['x'] in columns else 0
+                    index=columns.index(st.session_state.chart_configs['Chart 2']['x']) 
+                    if st.session_state.chart_configs['Chart 2']['x'] in columns else 0
                 )
             
             with col2:
-                st.session_state.chart_configs['chart2']['y'] = st.selectbox(
+                st.session_state.chart_configs['Chart 2']['y'] = st.selectbox(
                     "Y-axis", numeric_columns, key="line_y",
-                    index=numeric_columns.index(st.session_state.chart_configs['chart2']['y']) 
-                    if st.session_state.chart_configs['chart2']['y'] in numeric_columns else 0
+                    index=numeric_columns.index(st.session_state.chart_configs['Chart 2']['y']) 
+                    if st.session_state.chart_configs['Chart 2']['y'] in numeric_columns else 0
                 ) if numeric_columns else None
             
             with col3:
                 color_options = ['None'] + columns
                 color_selection = st.selectbox("Color by", color_options, key="line_color")
-                st.session_state.chart_configs['chart2']['color'] = color_selection if color_selection != 'None' else None
+                st.session_state.chart_configs['Chart 2']['color'] = color_selection if color_selection != 'None' else None
         
         # Chart 3 - Scatter Plot
         with chart_tabs[2]:
@@ -370,28 +373,28 @@ def display_chart_settings():
             col1, col2, col3, col4 = st.columns(4)
             
             with col1:
-                st.session_state.chart_configs['chart3']['x'] = st.selectbox(
+                st.session_state.chart_configs['Chart 3']['x'] = st.selectbox(
                     "X-axis", numeric_columns, key="scatter_x",
-                    index=numeric_columns.index(st.session_state.chart_configs['chart3']['x']) 
-                    if st.session_state.chart_configs['chart3']['x'] in numeric_columns else 0
+                    index=numeric_columns.index(st.session_state.chart_configs['Chart 3']['x']) 
+                    if st.session_state.chart_configs['Chart 3']['x'] in numeric_columns else 0
                 ) if numeric_columns else None
             
             with col2:
-                st.session_state.chart_configs['chart3']['y'] = st.selectbox(
+                st.session_state.chart_configs['Chart 3']['y'] = st.selectbox(
                     "Y-axis", numeric_columns, key="scatter_y",
-                    index=numeric_columns.index(st.session_state.chart_configs['chart3']['y']) 
-                    if st.session_state.chart_configs['chart3']['y'] in numeric_columns else 0
+                    index=numeric_columns.index(st.session_state.chart_configs['Chart 3']['y']) 
+                    if st.session_state.chart_configs['Chart 3']['y'] in numeric_columns else 0
                 ) if numeric_columns else None
             
             with col3:
                 color_options = ['None'] + columns
                 color_selection = st.selectbox("Color by", color_options, key="scatter_color")
-                st.session_state.chart_configs['chart3']['color'] = color_selection if color_selection != 'None' else None
+                st.session_state.chart_configs['Chart 3']['color'] = color_selection if color_selection != 'None' else None
             
             with col4:
                 size_options = ['None'] + numeric_columns
                 size_selection = st.selectbox("Size by", size_options, key="scatter_size")
-                st.session_state.chart_configs['chart3']['size'] = size_selection if size_selection != 'None' else None
+                st.session_state.chart_configs['Chart 3']['size'] = size_selection if size_selection != 'None' else None
         
         # Chart 4 - Pie Chart
         with chart_tabs[3]:
@@ -399,17 +402,17 @@ def display_chart_settings():
             col1, col2 = st.columns(2)
             
             with col1:
-                st.session_state.chart_configs['chart4']['values'] = st.selectbox(
+                st.session_state.chart_configs['Chart 4']['values'] = st.selectbox(
                     "Values", numeric_columns, key="pie_values",
-                    index=numeric_columns.index(st.session_state.chart_configs['chart4']['values']) 
-                    if st.session_state.chart_configs['chart4']['values'] in numeric_columns else 0
+                    index=numeric_columns.index(st.session_state.chart_configs['Chart 4']['values']) 
+                    if st.session_state.chart_configs['Chart 4']['values'] in numeric_columns else 0
                 ) if numeric_columns else None
             
             with col2:
-                st.session_state.chart_configs['chart4']['names'] = st.selectbox(
+                st.session_state.chart_configs['Chart 4']['names'] = st.selectbox(
                     "Labels", columns, key="pie_names",
-                    index=columns.index(st.session_state.chart_configs['chart4']['names']) 
-                    if st.session_state.chart_configs['chart4']['names'] in columns else 0
+                    index=columns.index(st.session_state.chart_configs['Chart 4']['names']) 
+                    if st.session_state.chart_configs['Chart 4']['names'] in columns else 0
                 )
 
 def display_export_options(export_helper):
