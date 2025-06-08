@@ -8,6 +8,7 @@ from utils.chart_generator import ChartGenerator
 from utils.export_helper import ExportHelper
 import io
 import base64
+from streamlit_sortables import sort_items
 
 # Configure page
 st.set_page_config(

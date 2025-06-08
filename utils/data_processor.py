@@ -67,7 +67,7 @@ class DataProcessor:
             if data[col].dtype == 'object':
                 try:
                     # Try to parse as datetime
-                    date_series = pd.to_datetime(data[col], errors='coerce', infer_datetime_format=True)
+                    date_series = pd.to_datetime(data[col], errors='coerce')
                     if not date_series.isna().all():
                         # If more than 50% of values can be converted, treat as datetime
                         if (date_series.notna().sum() / len(data)) > 0.5:
