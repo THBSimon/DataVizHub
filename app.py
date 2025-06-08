@@ -286,6 +286,9 @@ def display_data_explorer(data_processor):
         filters = {}
         filter_changed = False
         
+        # Get reset counter for widget keys to force recreation on reset
+        reset_counter = st.session_state.get('filter_reset_counter', 0)
+        
         for col in columns:
             if st.session_state.data[col].dtype == 'object':
                 unique_values = st.session_state.data[col].unique()
@@ -293,7 +296,7 @@ def display_data_explorer(data_processor):
                     f"Filter {col}",
                     options=unique_values,
                     default=unique_values,
-                    key=f"filter_{col}"
+                    key=f"filter_{col}_{reset_counter}"
                 )
                 if len(selected) < len(unique_values):
                     filters[col] = selected
@@ -306,7 +309,7 @@ def display_data_explorer(data_processor):
                     min_value=min_val,
                     max_value=max_val,
                     value=(min_val, max_val),
-                    key=f"range_{col}"
+                    key=f"range_{col}_{reset_counter}"
                 )
                 if range_val[0] > min_val or range_val[1] < max_val:
                     filters[col] = range_val
@@ -336,7 +339,7 @@ def display_data_explorer(data_processor):
             # Clear all filter widget states and reset current filters
             keys_to_delete = []
             for key in st.session_state.keys():
-                if key.startswith('filter_') or key.startswith('range_'):
+                if isinstance(key, str) and (key.startswith('filter_') or key.startswith('range_')):
                     keys_to_delete.append(key)
             
             for key in keys_to_delete:
@@ -345,6 +348,11 @@ def display_data_explorer(data_processor):
             # Clear current filter state
             st.session_state.current_filters = {}
             st.session_state.filtered_data = st.session_state.data.copy()
+            
+            # Increment reset counter to force widget recreation with new keys
+            if 'filter_reset_counter' not in st.session_state:
+                st.session_state.filter_reset_counter = 0
+            st.session_state.filter_reset_counter += 1
             
             # Increment counter to force chart refresh
             if 'filter_update_counter' not in st.session_state:
