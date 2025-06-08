@@ -258,7 +258,7 @@ def display_data_explorer(data_processor):
                     default=unique_values,
                     key=f"filter_{col}"
                 )
-                if selected != list(unique_values):
+                if len(selected) < len(unique_values):
                     filters[col] = selected
             else:
                 min_val = float(st.session_state.data[col].min())
@@ -270,7 +270,7 @@ def display_data_explorer(data_processor):
                     value=(min_val, max_val),
                     key=f"range_{col}"
                 )
-                if range_val != (min_val, max_val):
+                if range_val[0] > min_val or range_val[1] < max_val:
                     filters[col] = range_val
         
         # Apply filters automatically
@@ -278,14 +278,10 @@ def display_data_explorer(data_processor):
             st.session_state.filtered_data = data_processor.apply_filters(
                 st.session_state.data, filters
             )
+            st.success(f"✅ Applied {len(filters)} filter(s) - {len(st.session_state.filtered_data)} rows shown")
         else:
             st.session_state.filtered_data = st.session_state.data.copy()
-        
-        # Show filter summary
-        if filters:
-            st.success(f"✅ Applied {len(filters)} filter(s)")
-        else:
-            st.info("ℹ️ No filters applied - showing all data")
+            st.info(f"ℹ️ No filters applied - showing all {len(st.session_state.data)} rows")
         
         # Reset filters
         if st.button("🔄 Reset Filters"):
