@@ -25,16 +25,15 @@ if 'filtered_data' not in st.session_state:
     st.session_state.filtered_data = None
 if 'chart_configs' not in st.session_state:
     st.session_state.chart_configs = {
-        'chart1': {'type': 'bar', 'x': None, 'y': None, 'color': None},
-        'chart2': {'type': 'line', 'x': None, 'y': None, 'color': None},
-        'chart3': {'type': 'scatter', 'x': None, 'y': None, 'color': None, 'size': None},
-        'chart4': {'type': 'pie', 'values': None, 'names': None}
+        'Chart 1': {'type': 'bar', 'x': None, 'y': None, 'color': None, 'title': 'Bar Chart'},
+        'Chart 2': {'type': 'line', 'x': None, 'y': None, 'color': None, 'title': 'Line Chart'},
+        'Chart 3': {'type': 'scatter', 'x': None, 'y': None, 'color': None, 'size': None, 'title': 'Scatter Plot'},
+        'Chart 4': {'type': 'pie', 'values': None, 'names': None, 'title': 'Pie Chart'}
     }
-if 'layout_config' not in st.session_state:
-    st.session_state.layout_config = {
-        'columns': 2,
-        'chart_order': ['chart1', 'chart2', 'chart3', 'chart4']
-    }
+if 'dashboard_layout' not in st.session_state:
+    st.session_state.dashboard_layout = ['Chart 1', 'Chart 2', 'Chart 3', 'Chart 4']
+if 'columns_layout' not in st.session_state:
+    st.session_state.columns_layout = 2
 
 def main():
     st.title("📊 Interactive Data Visualization Dashboard")
@@ -103,43 +102,126 @@ def main():
         st.dataframe(sample_data, use_container_width=True)
         st.caption("Your data should have column headers in the first row.")
 
+def create_chart_widget(chart_name, chart_generator):
+    """Create an individual chart widget with inline settings"""
+    with st.container(border=True):
+        # Chart header with title and settings toggle
+        col1, col2 = st.columns([3, 1])
+        with col1:
+            st.subheader(st.session_state.chart_configs[chart_name]['title'])
+        with col2:
+            show_settings = st.toggle("⚙️", key=f"settings_{chart_name}", help="Show chart settings")
+        
+        # Inline settings when toggled
+        if show_settings:
+            st.markdown("**Chart Configuration:**")
+            config = st.session_state.chart_configs[chart_name]
+            
+            if st.session_state.filtered_data is not None:
+                columns = st.session_state.filtered_data.columns.tolist()
+                numeric_columns = st.session_state.filtered_data.select_dtypes(include=[np.number]).columns.tolist()
+                
+                # Chart type selection
+                chart_types = ['bar', 'line', 'scatter', 'pie']
+                current_type_idx = chart_types.index(config['type']) if config['type'] in chart_types else 0
+                config['type'] = st.selectbox("Chart Type", chart_types, index=current_type_idx, key=f"type_{chart_name}")
+                
+                # Dynamic settings based on chart type
+                if config['type'] in ['bar', 'line', 'scatter']:
+                    col_x, col_y = st.columns(2)
+                    with col_x:
+                        x_idx = columns.index(config['x']) if config['x'] in columns else 0
+                        config['x'] = st.selectbox("X-axis", columns, index=x_idx, key=f"x_{chart_name}")
+                    with col_y:
+                        if numeric_columns:
+                            y_idx = numeric_columns.index(config['y']) if config['y'] in numeric_columns else 0
+                            config['y'] = st.selectbox("Y-axis", numeric_columns, index=y_idx, key=f"y_{chart_name}")
+                    
+                    # Color option
+                    color_options = ['None'] + columns
+                    color_idx = color_options.index(config['color']) if config['color'] in color_options else 0
+                    color_selection = st.selectbox("Color by", color_options, index=color_idx, key=f"color_{chart_name}")
+                    config['color'] = color_selection if color_selection != 'None' else None
+                    
+                    # Size option for scatter plots
+                    if config['type'] == 'scatter':
+                        size_options = ['None'] + numeric_columns
+                        size_idx = size_options.index(config['size']) if config['size'] in size_options else 0
+                        size_selection = st.selectbox("Size by", size_options, index=size_idx, key=f"size_{chart_name}")
+                        config['size'] = size_selection if size_selection != 'None' else None
+                
+                elif config['type'] == 'pie':
+                    col_vals, col_names = st.columns(2)
+                    with col_vals:
+                        if numeric_columns:
+                            vals_idx = numeric_columns.index(config['values']) if config['values'] in numeric_columns else 0
+                            config['values'] = st.selectbox("Values", numeric_columns, index=vals_idx, key=f"values_{chart_name}")
+                    with col_names:
+                        names_idx = columns.index(config['names']) if config['names'] in columns else 0
+                        config['names'] = st.selectbox("Labels", columns, index=names_idx, key=f"names_{chart_name}")
+                
+                # Update the session state
+                st.session_state.chart_configs[chart_name] = config
+        
+        # Create and display the chart
+        if st.session_state.filtered_data is not None and not st.session_state.filtered_data.empty:
+            try:
+                chart = chart_generator.create_chart(
+                    st.session_state.filtered_data,
+                    st.session_state.chart_configs[chart_name]['type'],
+                    st.session_state.chart_configs[chart_name]
+                )
+                if chart:
+                    st.plotly_chart(chart, use_container_width=True, key=f"chart_{chart_name}")
+                else:
+                    st.info("Configure chart settings to display visualization")
+            except Exception as e:
+                st.error(f"Error creating chart: {str(e)}")
+        else:
+            st.info("No data available for visualization")
+
 def display_dashboard(chart_generator):
     """Display the main dashboard with charts"""
     st.header("📊 Interactive Dashboard")
     
     if st.session_state.filtered_data is not None and not st.session_state.filtered_data.empty:
-        # Layout configuration
-        col1, col2 = st.columns([3, 1])
+        # Dashboard layout controls
+        col1, col2, col3 = st.columns([2, 1, 1])
+        with col1:
+            st.markdown("**Drag and drop charts to reorder them:**")
         with col2:
-            st.subheader("Layout")
-            layout_cols = st.selectbox("Columns per row", [1, 2, 3, 4], index=1)
-            st.session_state.layout_config['columns'] = layout_cols
+            st.session_state.columns_layout = st.selectbox("Columns per row", [1, 2, 3, 4], index=st.session_state.columns_layout-1, key="layout_cols") 
+        with col3:
+            if st.button("Reset Layout"):
+                st.session_state.dashboard_layout = ['Chart 1', 'Chart 2', 'Chart 3', 'Chart 4']
+                st.rerun()
         
-        # Create charts based on layout
-        charts = []
-        for chart_id in st.session_state.layout_config['chart_order']:
-            config = st.session_state.chart_configs[chart_id]
-            try:
-                chart = chart_generator.create_chart(
-                    st.session_state.filtered_data, 
-                    config['type'], 
-                    config
-                )
-                if chart:
-                    charts.append((chart_id, chart))
-            except Exception as e:
-                st.error(f"Error creating {chart_id}: {str(e)}")
+        # Drag and drop interface for chart ordering
+        try:
+            sorted_items = sort_items(
+                st.session_state.dashboard_layout,
+                direction="horizontal" if st.session_state.columns_layout > 2 else "vertical",
+                key="dashboard_sort"
+            )
+            
+            # Update layout if changed
+            if sorted_items != st.session_state.dashboard_layout:
+                st.session_state.dashboard_layout = sorted_items
+                st.rerun()
+        except:
+            # Fallback if sorting fails
+            st.session_state.dashboard_layout = ['Chart 1', 'Chart 2', 'Chart 3', 'Chart 4']
         
-        # Display charts in configured layout
-        if charts:
-            cols_per_row = st.session_state.layout_config['columns']
-            for i in range(0, len(charts), cols_per_row):
-                cols = st.columns(cols_per_row)
-                for j, (chart_id, chart) in enumerate(charts[i:i+cols_per_row]):
+        # Display charts in the configured layout
+        cols_per_row = st.session_state.columns_layout
+        chart_list = st.session_state.dashboard_layout
+        
+        for i in range(0, len(chart_list), cols_per_row):
+            cols = st.columns(cols_per_row)
+            for j, chart_name in enumerate(chart_list[i:i+cols_per_row]):
+                if j < len(cols):
                     with cols[j]:
-                        st.plotly_chart(chart, use_container_width=True, key=f"dashboard_{chart_id}")
-        else:
-            st.warning("⚠️ Please configure chart settings in the 'Chart Settings' tab to display visualizations.")
+                        create_chart_widget(chart_name, chart_generator)
     else:
         st.warning("⚠️ No data available. Please check your filters.")
 
