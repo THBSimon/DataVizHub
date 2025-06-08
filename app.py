@@ -174,7 +174,9 @@ def create_chart_widget(chart_name, chart_generator):
                     st.session_state.chart_configs[chart_name]
                 )
                 if chart:
-                    st.plotly_chart(chart, use_container_width=True, key=f"chart_{chart_name}")
+                    # Include filter counter in key to force refresh when data changes
+                    filter_counter = st.session_state.get('filter_update_counter', 0)
+                    st.plotly_chart(chart, use_container_width=True, key=f"chart_{chart_name}_{filter_counter}")
                 else:
                     st.info("Configure chart settings to display visualization")
             except Exception as e:
@@ -285,10 +287,18 @@ def display_data_explorer(data_processor):
         # Apply filters automatically when they change
         if filters:
             new_filtered_data = data_processor.apply_filters(st.session_state.data, filters)
+            # Always update filtered data and increment counter when filters are active
             st.session_state.filtered_data = new_filtered_data
+            if 'filter_update_counter' not in st.session_state:
+                st.session_state.filter_update_counter = 0
+            st.session_state.filter_update_counter += 1
             st.success(f"✅ Applied {len(filters)} filter(s) - {len(st.session_state.filtered_data)} rows shown")
         else:
+            # Reset to original data if no filters
             st.session_state.filtered_data = st.session_state.data.copy()
+            if 'filter_update_counter' not in st.session_state:
+                st.session_state.filter_update_counter = 0
+            st.session_state.filter_update_counter += 1
             st.info(f"ℹ️ No filters applied - showing all {len(st.session_state.data)} rows")
         
         # Reset filters
