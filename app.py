@@ -286,42 +286,54 @@ def display_data_explorer(data_processor):
         filters = {}
         filter_changed = False
         
-        # Get reset counter for widget keys to force recreation on reset
-        reset_counter = st.session_state.get('filter_reset_counter', 0)
+        # Initialize reset counter and widget recreation timestamp
+        if 'filter_reset_counter' not in st.session_state:
+            st.session_state.filter_reset_counter = 0
         
-        # Create a container that gets completely recreated on reset
-        filter_container = st.container()
-        with filter_container:
-            for col in columns:
-                if st.session_state.data[col].dtype == 'object':
-                    unique_values = st.session_state.data[col].unique()
-                    # Force complete widget recreation by including reset counter in key
-                    widget_key = f"filter_{col}_reset_{reset_counter}"
-                    selected = st.multiselect(
-                        f"Filter {col}",
-                        options=unique_values,
-                        default=unique_values,
-                        key=widget_key
-                    )
-                    if len(selected) < len(unique_values):
-                        filters[col] = selected
-                        filter_changed = True
+        # Use timestamp-based approach for guaranteed unique keys
+        import time
+        reset_timestamp = st.session_state.get('filter_reset_timestamp', int(time.time()))
+        reset_counter = st.session_state.filter_reset_counter
+        
+        for col in columns:
+            if st.session_state.data[col].dtype == 'object':
+                unique_values = st.session_state.data[col].unique()
+                # Create completely unique key combining counter and timestamp
+                unique_key = f"filter_{col}_{reset_counter}_{reset_timestamp}"
+                
+                # Check if this is a fresh reset (no existing state)
+                if unique_key not in st.session_state:
+                    default_selection = unique_values
                 else:
-                    min_val = float(st.session_state.data[col].min())
-                    max_val = float(st.session_state.data[col].max())
-                    
-                    # Force complete widget recreation by including reset counter in key
-                    widget_key = f"range_{col}_reset_{reset_counter}"
-                    range_val = st.slider(
-                        f"Range for {col}",
-                        min_value=min_val,
-                        max_value=max_val,
-                        value=(min_val, max_val),
-                        key=widget_key
-                    )
-                    if range_val[0] > min_val or range_val[1] < max_val:
-                        filters[col] = range_val
-                        filter_changed = True
+                    # Use existing state if available
+                    default_selection = st.session_state.get(unique_key, unique_values)
+                
+                selected = st.multiselect(
+                    f"Filter {col}",
+                    options=unique_values,
+                    default=list(unique_values),  # Always reset to all selected
+                    key=unique_key
+                )
+                if len(selected) < len(unique_values):
+                    filters[col] = selected
+                    filter_changed = True
+            else:
+                min_val = float(st.session_state.data[col].min())
+                max_val = float(st.session_state.data[col].max())
+                
+                # Create completely unique key combining counter and timestamp
+                unique_key = f"range_{col}_{reset_counter}_{reset_timestamp}"
+                
+                range_val = st.slider(
+                    f"Range for {col}",
+                    min_value=min_val,
+                    max_value=max_val,
+                    value=(min_val, max_val),  # Always reset to full range
+                    key=unique_key
+                )
+                if range_val[0] > min_val or range_val[1] < max_val:
+                    filters[col] = range_val
+                    filter_changed = True
         
         # Store current filter state for persistence across tabs
         st.session_state.current_filters = filters
@@ -344,13 +356,12 @@ def display_data_explorer(data_processor):
         
         # Reset filters
         if st.button("🔄 Reset Filters"):
-            # Nuclear option: clear ALL widget states that could interfere
+            # Clear ALL widget states completely
             keys_to_delete = []
             for key in list(st.session_state.keys()):
                 if isinstance(key, str) and (
                     key.startswith('filter_') or 
-                    key.startswith('range_') or
-                    'reset_' in key
+                    key.startswith('range_')
                 ):
                     keys_to_delete.append(key)
             
@@ -362,15 +373,13 @@ def display_data_explorer(data_processor):
             st.session_state.current_filters = {}
             st.session_state.filtered_data = st.session_state.data.copy()
             
-            # Force complete widget recreation by incrementing counter
-            if 'filter_reset_counter' not in st.session_state:
-                st.session_state.filter_reset_counter = 0
-            st.session_state.filter_reset_counter += 1
+            # Force complete widget recreation with new timestamp
+            import time
+            st.session_state.filter_reset_counter = st.session_state.get('filter_reset_counter', 0) + 1
+            st.session_state.filter_reset_timestamp = int(time.time())
             
             # Force chart refresh
-            if 'filter_update_counter' not in st.session_state:
-                st.session_state.filter_update_counter = 0
-            st.session_state.filter_update_counter += 1
+            st.session_state.filter_update_counter = st.session_state.get('filter_update_counter', 0) + 1
             
             st.rerun()
     
