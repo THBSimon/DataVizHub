@@ -61,6 +61,10 @@ def main():
                 with st.spinner("Loading data..."):
                     st.session_state.data = data_processor.load_data(uploaded_file)
                     st.session_state.filtered_data = st.session_state.data.copy()
+                    
+                    # Force a rerun to ensure all components use the new data
+                    st.rerun()
+                    
                 st.success(f"✅ Data loaded successfully! ({len(st.session_state.data)} rows)")
                 
                 # Display basic data info
@@ -71,6 +75,7 @@ def main():
             except Exception as e:
                 st.error(f"❌ Error loading data: {str(e)}")
                 st.session_state.data = None
+                st.session_state.filtered_data = None
     
     if st.session_state.data is not None:
         # Main content area
@@ -184,7 +189,20 @@ def display_dashboard(chart_generator):
     """Display the main dashboard with charts"""
     st.header("📊 Interactive Dashboard")
     
+    # Ensure filtered data is initialized
+    if 'filtered_data' not in st.session_state or st.session_state.filtered_data is None:
+        if st.session_state.data is not None:
+            st.session_state.filtered_data = st.session_state.data.copy()
+    
     if st.session_state.filtered_data is not None and not st.session_state.filtered_data.empty:
+        # Show current data status
+        total_rows = len(st.session_state.data) if st.session_state.data is not None else 0
+        filtered_rows = len(st.session_state.filtered_data)
+        if filtered_rows < total_rows:
+            st.info(f"📊 Showing {filtered_rows} of {total_rows} rows (filtered)")
+        else:
+            st.info(f"📊 Showing all {total_rows} rows")
+        
         # Dashboard layout controls
         col1, col2, col3 = st.columns([2, 1, 1])
         with col1:
