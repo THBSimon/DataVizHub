@@ -304,6 +304,9 @@ def display_data_explorer(data_processor):
             else:
                 min_val = float(st.session_state.data[col].min())
                 max_val = float(st.session_state.data[col].max())
+                
+                # Force sliders to reset to full range by always using full range as default
+                # when reset counter changes (new widget creation)
                 range_val = st.slider(
                     f"Range for {col}",
                     min_value=min_val,
